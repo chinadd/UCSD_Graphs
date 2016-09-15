@@ -7,13 +7,19 @@
  */
 package roadgraph;
 
-
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import geography.GeographicPoint;
 import util.GraphLoader;
+
 
 /**
  * @author UCSD MOOC development team and YOU
@@ -24,6 +30,10 @@ import util.GraphLoader;
  */
 public class MapGraph {
 	//TODO: Add your member variables here in WEEK 2
+	//HashMap stores locations of intersections
+	private HashMap<GeographicPoint, MapNode> pointNodeMap;
+	//HashSet stores edges connecting vertices
+	private HashSet<MapEdge> edges;
 	
 	
 	/** 
@@ -32,6 +42,8 @@ public class MapGraph {
 	public MapGraph()
 	{
 		// TODO: Implement in this constructor in WEEK 2
+		pointNodeMap = new HashMap<GeographicPoint, MapNode>();
+		edges = new HashSet<MapEdge>();				
 	}
 	
 	/**
@@ -41,17 +53,31 @@ public class MapGraph {
 	public int getNumVertices()
 	{
 		//TODO: Implement this method in WEEK 2
-		return 0;
+		return pointNodeMap.values().size();
 	}
+
 	
 	/**
-	 * Return the intersections, which are the vertices in this graph.
-	 * @return The vertices in this graph as GeographicPoints
+	 * print the intersections, which are the vertices in this graph.
 	 */
+	public void printNodes(){
+		System.out.println("********Printing Nodes********");
+		System.out.println("There are " + getNumVertices()+"Nodes: \n");
+		for (GeographicPoint pt: pointNodeMap.keySet()){
+			MapNode n = pointNodeMap.get(pt);
+			System.out.println(n);
+		}
+	}
+	
+	/** Returns the nodes in terms of their geographic locations */	
 	public Set<GeographicPoint> getVertices()
 	{
 		//TODO: Implement this method in WEEK 2
-		return null;
+		return pointNodeMap.keySet();
+	}
+	// Returns the neighbour nodes from a MapNode
+	public Set<MapNode> getNeighbors(MapNode node){
+		return node.getNeighbors();
 	}
 	
 	/**
@@ -61,11 +87,9 @@ public class MapGraph {
 	public int getNumEdges()
 	{
 		//TODO: Implement this method in WEEK 2
-		return 0;
+		return edges.size();
 	}
 
-	
-	
 	/** Add a node corresponding to an intersection at a Geographic Point
 	 * If the location is already in the graph or null, this method does 
 	 * not change the graph.
@@ -73,10 +97,31 @@ public class MapGraph {
 	 * @return true if a node was added, false if it was not (the node
 	 * was already in the graph, or the parameter is null).
 	 */
+	/**
+	 * Add a node corresponding to an intersection
+	 *
+	 * @param latitude
+	 *            The latitude of the location
+	 * @param longitude
+	 *            The longitude of the location
+	 */
+	
+	
 	public boolean addVertex(GeographicPoint location)
 	{
 		// TODO: Implement this method in WEEK 2
-		return false;
+		MapNode n = pointNodeMap.get(location);
+		//test if node is already contained
+		if (n == null){
+			n = new MapNode(location);
+			pointNodeMap.put(location, n);
+			return true;			
+		}
+		else
+		{
+			System.out.println("Warning: nodes already exists");	
+			return false;		
+		}
 	}
 	
 	/**
@@ -91,14 +136,47 @@ public class MapGraph {
 	 *   added as nodes to the graph, if any of the arguments is null,
 	 *   or if the length is less than 0.
 	 */
+	
 	public void addEdge(GeographicPoint from, GeographicPoint to, String roadName,
-			String roadType, double length) throws IllegalArgumentException {
+			String roadType) throws IllegalArgumentException{
 
 		//TODO: Implement this method in WEEK 2
+		MapNode n1 = pointNodeMap.get(from);
+		MapNode n2 = pointNodeMap.get(to);
 		
+		if (n1==null){
+			throw new NullPointerException("addEdge: from "+from+"is not found");
+		}
+		if (n2 == null){
+			throw new NullPointerException("addEdge: to "+to+"is not found");
+		}
+		addEdge(n1, n2, roadName, roadType, MapEdge.DEFAULT_LENGTH);
+	}
+	
+	public void addEdge(GeographicPoint pt1, GeographicPoint pt2, String roadName, String roadType, double length)
+			throws IllegalArgumentException{
+		MapNode n1 = pointNodeMap.get(pt1);
+		MapNode n2 = pointNodeMap.get(pt2);
+
+		// check nodes are valid
+		if (n1 == null)
+			throw new NullPointerException("addEdge: pt1:" + pt1 + "is not in graph");
+		if (n2 == null)
+			throw new NullPointerException("addEdge: pt2:" + pt2 + "is not in graph");
+
+		addEdge(n1, n2, roadName, roadType, length);
 	}
 	
 
+	// Add an edge when you already know the nodes involved in the edge
+	private void addEdge(MapNode n1, MapNode n2, String roadName, String roadType, double length) 
+			throws IllegalArgumentException{
+		MapEdge edge = new MapEdge(roadName, roadType, n1, n2, length);
+		edges.add(edge);
+		n1.addEdge(edge);
+	}
+
+	
 	/** Find the path from start to goal using breadth first search
 	 * 
 	 * @param start The starting location
@@ -109,6 +187,7 @@ public class MapGraph {
 	public List<GeographicPoint> bfs(GeographicPoint start, GeographicPoint goal) {
 		// Dummy variable for calling the search algorithms
         Consumer<GeographicPoint> temp = (x) -> {};
+        
         return bfs(start, goal, temp);
 	}
 	
@@ -124,14 +203,93 @@ public class MapGraph {
 			 					     GeographicPoint goal, Consumer<GeographicPoint> nodeSearched)
 	{
 		// TODO: Implement this method in WEEK 2
+		//data structure for BFS
+		HashMap<MapNode,MapNode> parentMap = new HashMap<MapNode,MapNode>();	
+		Queue<MapNode> toExplore = new LinkedList<MapNode>();			
+		HashSet<MapNode> visited = new HashSet<MapNode>();
 		
-		// Hook for visualization.  See writeup.
-		//nodeSearched.accept(next.getLocation());
+		//setup check validity of inputs
+		if (start == null || goal == null)
+			throw new NullPointerException("Cannot find route from or to null node");
+		MapNode startNode = pointNodeMap.get(start);
+		MapNode endNode = pointNodeMap.get(goal);
+		if (startNode == null) {
+			System.err.println("Start node " + start + " does not exist");
+			return null;
+		}
+		if (endNode == null) {
+			System.err.println("End node " + goal + " does not exist");
+			return null;
+		}
 
-		return null;
+		// setup to begin BFS	
+				//add startNode to the list of nodes to explore
+		toExplore.add(startNode);
+		//next stores the right next node to be explored		
+		MapNode next = null;
+		
+		while(!toExplore.isEmpty()){
+			next = toExplore.remove();
+			
+			// Hook for visualization.  See writeup.
+			nodeSearched.accept(next.getLocation());
+			
+			//reach the end of the path
+			if(next.equals(endNode)){
+				break;//destination found
+				}else{
+					//explore neighbor nodes
+					Set<MapNode> neighbors = getNeighbors(next);
+					for (MapNode n: neighbors){
+						if(!visited.contains(n)){
+							visited.add(n);
+							parentMap.put(n, next);
+							toExplore.add(n);
+						}
+					}
+				}					
+		}
+		
+		if(!next.equals(endNode)){
+			System.out.println("No path from "+start + "to "+ goal);
+			return null;
+		}else{
+			// Reconstruct the parent path
+			List<GeographicPoint> path =
+					reconstructPath(parentMap, startNode, endNode);
+
+			return path;
+		}
+
 	}
 	
+	/** Reconstruct a path from start to goal using the parentMap
+	 *
+	 * @param parentMap the HashNode map of children and their parents
+	 * @param start The starting location
+	 * @param goal The goal location
+	 * @return The list of intersections that form the shortest path from
+	 *   start to goal (including both start and goal).
+	 */
 
+	private List<GeographicPoint>
+	reconstructPath(HashMap<MapNode,MapNode> parentMap,
+					MapNode start, MapNode goal)
+	{
+		//path constructed from BFS search
+		LinkedList<GeographicPoint> path = new LinkedList<GeographicPoint>();
+		MapNode current = goal;//reconstruct from the endNode
+
+		while (!current.equals(start)) {
+			path.addFirst(current.getLocation());//add parent node to the front of list
+			current = parentMap.get(current);
+		}
+
+		// add start
+		path.addFirst(start.getLocation());
+		return path;
+	}
+	
 	/** Find the path from start to goal using Dijkstra's algorithm
 	 * 
 	 * @param start The starting location
@@ -206,12 +364,20 @@ public class MapGraph {
 		System.out.print("DONE. \nLoading the map...");
 		GraphLoader.loadRoadMap("data/testdata/simpletest.map", firstMap);
 		System.out.println("DONE.");
+		firstMap.printNodes();
+		//select start and end point
+		GeographicPoint testStart = new GeographicPoint(1.0, 1.0);
+		GeographicPoint testEnd = new GeographicPoint(8.0, -1.0);
+		
+		//find route with breadth first search
+		List<GeographicPoint> testroute = firstMap.bfs(testStart, testEnd);
+		System.out.println(testroute);
 		
 		// You can use this method for testing.  
 		
 		
 		/* Here are some test cases you should try before you attempt 
-		 * the Week 3 End of Week Quiz, EVEN IF you score 100% on the 
+		 * the Week s3 End of Week Quiz, EVEN IF you score 100% on the 
 		 * programming assignment.
 		 */
 		/*
