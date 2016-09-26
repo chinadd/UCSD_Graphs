@@ -7,6 +7,7 @@
  */
 package roadgraph;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -291,16 +292,32 @@ public class MapGraph {
 		//path constructed from BFS search
 		LinkedList<GeographicPoint> path = new LinkedList<GeographicPoint>();
 		MapNode current = goal;//reconstruct from the sendNode
-
+		double dist = 0.0;
+		int time = 0; 
+		
 		while (!current.equals(start)) {
 			path.addFirst(current.getLocation());//add parent node to the front of list
-			current = parentMap.get(current);
+			MapNode temp = parentMap.get(current);
+			//2 way to compute path length
+			HashMap<MapNode, Double> distancesMap = calculateDistanesMap(temp);
+			dist += distancesMap.get(current);
+			//System.out.println("edge length: "+distancesMap.get(current));
+			/*
+			for (MapEdge e:temp.getEdges()){
+				if(e.getEndNode().equals(current)){
+					dist += e.getLength();
+					}		
+			}*/
+			current = temp;
 		}
 
 		// add start
 		path.addFirst(start.getLocation());
+		System.out.println("total distance: "+dist);
+		
 		return path;
 	}
+	
 	
 	/** Find the path from start to goal using Dijkstra's algorithm
 	 * 
@@ -387,7 +404,12 @@ public class MapGraph {
 		System.out.println("Visited: " + visited.size());
 
 		// Reconstruct the parent path
-		return reconstructPath(parentMap, startNode, endNode, endNode.equals(next));
+		if(!next.equals(endNode)){
+			System.out.println("No path from "+start + "to "+ goal);
+			return null;
+		}else{
+			return reconstructPath(parentMap, startNode, endNode, endNode.equals(next));
+		}
 	}
 			
 	private void initializeDistances() {
@@ -442,7 +464,7 @@ public class MapGraph {
 	
 	public static void main(String[] args)
 	{
-		/*System.out.print("Making a new map...");
+		System.out.print("Making a new map...");
 		MapGraph firstMap = new MapGraph();
 		System.out.print("DONE. \nLoading the map...");
 		GraphLoader.loadRoadMap("data/testdata/simpletest.map", firstMap);
@@ -455,10 +477,10 @@ public class MapGraph {
 		//find route with breadth first search
 		List<GeographicPoint> testroute = firstMap.bfs(testStart, testEnd);
 		System.out.println(testroute);
-		*/
+		
+
 		// You can use this method for testing.  
-		
-		
+				
 		/* Here are some test cases you should try before you attempt 
 		 * the Week s3 End of Week Quiz, EVEN IF you score 100% on the 
 		 * programming assignment.
@@ -467,16 +489,17 @@ public class MapGraph {
 		MapGraph simpleTestMap = new MapGraph();
 		GraphLoader.loadRoadMap("data/testdata/simpletest.map", simpleTestMap);
 		
-		GeographicPoint testStart = new GeographicPoint(1.0, 1.0);
-		GeographicPoint testEnd = new GeographicPoint(8.0, -1.0);
+		//GeographicPoint testStart = new GeographicPoint(1.0, 1.0);
+		//GeographicPoint testEnd = new GeographicPoint(8.0, -1.0);
 		
 		System.out.println("Test 1 using simpletest: Dijkstra should be 9 and AStar should be 5");
 		List<GeographicPoint> testroute1 = simpleTestMap.dijkstra(testStart,testEnd);
 		List<GeographicPoint> testroute2 = simpleTestMap.aStarSearch(testStart,testEnd);
-		
+				
 		
 		MapGraph testMap = new MapGraph();
 		GraphLoader.loadRoadMap("data/maps/utc.map", testMap);
+		
 		
 		// A very simple test using real data
 		testStart = new GeographicPoint(32.869423, -117.220917);
@@ -485,7 +508,8 @@ public class MapGraph {
 		testroute1 = testMap.dijkstra(testStart,testEnd);
 		testroute2 = testMap.aStarSearch(testStart,testEnd);
 		
-		
+
+				
 		// A slightly more complex test using real data
 		testStart = new GeographicPoint(32.8674388, -117.2190213);
 		testEnd = new GeographicPoint(32.8697828, -117.2244506);
@@ -494,8 +518,9 @@ public class MapGraph {
 		testroute2 = testMap.aStarSearch(testStart,testEnd);
 		
 		
-		
+				
 		/* Use this code in Week 3 End of Week Quiz */
+		/*
 		MapGraph theMap = new MapGraph();
 		System.out.print("DONE. \nLoading the map...");
 		GraphLoader.loadRoadMap("data/maps/utc.map", theMap);
@@ -503,12 +528,10 @@ public class MapGraph {
 
 		GeographicPoint start = new GeographicPoint(32.8648772, -117.2254046);
 		GeographicPoint end = new GeographicPoint(32.8660691, -117.217393);
-		
-		
+			
 		List<GeographicPoint> route = theMap.dijkstra(start,end);
 		List<GeographicPoint> route2 = theMap.aStarSearch(start,end);
-
-		
+		*/		
 	}
 	
 }
